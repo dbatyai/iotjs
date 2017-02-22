@@ -28,6 +28,14 @@ def report_fail(test, results):
     print("\033[1;31mFAIL : %s\033[0m" % (test["name"]))
 
 
+def report_final(results):
+    print("")
+    print("\033[1;34mFinished with all tests\033[0m")
+    print("\033[1;32mPASS : %d\033[0m" % (results["pass"]))
+    print("\033[1;31mFAIL : %d\033[0m" % (results["fail"]))
+    print("\033[1;33mSKIP : %d\033[0m" % (results["skip"]))
+
+
 def check_expected(test, output):
     expected_file = test.get("expected")
     if expected_file:
@@ -44,6 +52,9 @@ def check_expected(test, output):
 
 
 def run_testset(testset, args, results):
+    print("")
+    print("\033[1;34mRunning: %s\033[0m" % (testset["path"]))
+
     iotjs = fs.abspath(args.iotjs)
     owd = fs.getcwd()
     fs.chdir(fs.join(path.TEST_ROOT, testset["path"]))
@@ -74,7 +85,7 @@ def get_args():
     return parser.parse_args()
 
 
-def main():
+def run_tests():
     args = get_args()
 
     with open(fs.join(path.TEST_ROOT, 'tests.json')) as data_file:
@@ -84,8 +95,8 @@ def main():
     for testset in testsets:
         run_testset(testset, args, results)
 
-    print(results)
+    report_final(results)
 
 
 if __name__ == "__main__":
-    main()
+    run_tests()
