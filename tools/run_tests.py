@@ -96,7 +96,8 @@ def run_tests():
         run_testset(testset, args, results)
 
     report_final(results)
+    return results["fail"]
 
 
 if __name__ == "__main__":
-    run_tests()
+    exit(run_tests())
