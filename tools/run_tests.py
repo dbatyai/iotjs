@@ -65,11 +65,10 @@ def check_expected(test, output):
     return True
 
 
-def run_testset(testset, args, results):
+def run_testset(testset, iotjs, timeout, prefix, results):
     print("")
     print("\033[1;34mRunning: %s\033[0m" % (testset["path"]))
 
-    iotjs = fs.abspath(args.iotjs)
     owd = fs.getcwd()
     fs.chdir(fs.join(path.TEST_ROOT, testset["path"]))
 
@@ -79,8 +78,13 @@ def run_testset(testset, args, results):
             report_skip(test, results)
             continue
 
-        timeout = test.get("timeout", args.timeout)
-        proc = subprocess.Popen(["timeout", "-k", "30", "%d" % (timeout * 60), iotjs, test["name"]], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        tout = test.get("timeout", timeout)
+        cmd = ["timeout", "-k", "30", "%d" % (tout * 60), iotjs, test["name"]]
+
+        if prefix:
+            cmd[-2:-2:] = prefix.split()[::]
+
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output = proc.communicate()[0]
 
         should_fail = test.get("fail", False)
@@ -92,26 +96,33 @@ def run_testset(testset, args, results):
     fs.chdir(owd)
 
 
-def get_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('iotjs', action='store', help='IoT.js binary to run tests with')
-    parser.add_argument('--timeout', type=int, action='store', default=5, help='Timeout for the tests in minutes (default: %(default)s)')
-    return parser.parse_args()
-
-
-def run_tests():
-    args = get_args()
+def run_tests(iotjs, timeout=5, prefix=""):
+    iotjs = fs.abspath(iotjs)
 
     with open(fs.join(path.TEST_ROOT, 'tests.json')) as data_file:
         testsets = json.load(data_file)["testsets"]
 
     results = {"pass":0, "fail":0, "skip":0}
     for testset in testsets:
-        run_testset(testset, args, results)
+        run_testset(testset, iotjs, timeout, prefix, results)
 
     report_final(results)
     return results["fail"]
 
 
+def get_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('iotjs', action='store', help='IoT.js binary to run tests with')
+    parser.add_argument('--timeout', type=int, action='store', default=5, help='Timeout for the tests in minutes (default: %(default)s)')
+    parser.add_argument('--prefix', action='store', default = "", help='Add a prefix to the command running the tests')
+    return parser.parse_args()
+
+
+def main():
+    args = get_args()
+
+    exit(run_tests(args.iotjs, args.timeout, args.prefix))
+
+
 if __name__ == "__main__":
-    exit(run_tests())
+    main()
