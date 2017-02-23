@@ -14,6 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import print_function
+
 import argparse
 import json
 import subprocess
@@ -65,7 +67,7 @@ def check_expected(test, output):
     return True
 
 
-def run_testset(testset, iotjs, timeout, prefix, results):
+def run_testset(testset, iotjs, timeout, prefix, skip_expected, show_output, results):
     print("")
     print("\033[1;34mRunning: %s\033[0m" % (testset["path"]))
 
@@ -87,8 +89,11 @@ def run_testset(testset, iotjs, timeout, prefix, results):
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output = proc.communicate()[0]
 
+        if show_output:
+            print(output, end='')
+
         should_fail = test.get("fail", False)
-        if bool(proc.returncode) == bool(should_fail) and check_expected(test, output):
+        if bool(proc.returncode) == bool(should_fail) and (skip_expected or check_expected(test, output)):
             report_pass(test, results)
         else:
             report_fail(test, results)
@@ -96,7 +101,7 @@ def run_testset(testset, iotjs, timeout, prefix, results):
     fs.chdir(owd)
 
 
-def run_tests(iotjs, timeout=5, prefix=""):
+def run_tests(iotjs, timeout=5, prefix="", skip_expected=False, show_output=False):
     iotjs = fs.abspath(iotjs)
 
     with open(fs.join(path.TEST_ROOT, 'tests.json')) as data_file:
@@ -104,7 +109,7 @@ def run_tests(iotjs, timeout=5, prefix=""):
 
     results = {"pass":0, "fail":0, "skip":0}
     for testset in testsets:
-        run_testset(testset, iotjs, timeout, prefix, results)
+        run_testset(testset, iotjs, timeout, prefix, skip_expected, show_output, results)
 
     report_final(results)
     return results["fail"]
@@ -114,14 +119,16 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('iotjs', action='store', help='IoT.js binary to run tests with')
     parser.add_argument('--timeout', type=int, action='store', default=5, help='Timeout for the tests in minutes (default: %(default)s)')
-    parser.add_argument('--prefix', action='store', default = "", help='Add a prefix to the command running the tests')
+    parser.add_argument('--prefix', action='store', default="", help='Add a prefix to the command running the tests')
+    parser.add_argument('--show-output', action='store_true', default=False, help='Print output of the tests (default: %(default)s)')
+    parser.add_argument('--skip-expected', action='store_true', default=False, help='Do not check the output of the tests (default: %(default)s)')
     return parser.parse_args()
 
 
 def main():
     args = get_args()
 
-    exit(run_tests(args.iotjs, args.timeout, args.prefix))
+    exit(run_tests(args.iotjs, args.timeout, args.prefix, args.skip_expected, args.show_output))
 
 
 if __name__ == "__main__":

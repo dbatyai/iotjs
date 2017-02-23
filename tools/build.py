@@ -718,15 +718,16 @@ def build_iotjs(option):
 
 
 def run_checktest(option):
+    checktest_show_output = False
     if os.getenv('TRAVIS') == "true":
-        checktest_quiet = 'no'
+        checktest_show_output = True
 
     # iot.js executable
     iotjs = fs.join(build_root, 'iotjs', 'iotjs')
 
     fs.chdir(path.PROJECT_ROOT)
     if not option.no_check_valgrind:
-        code = run_tests(iotjs, prefix='valgrind --leak-check=full --error-exitcode=5 --undef-value-errors=no')
+        code = run_tests(iotjs, prefix='valgrind --leak-check=full --error-exitcode=5 --undef-value-errors=no', skip_expected=True, show_output=checktest_show_output)
     else:
         code = run_tests(iotjs)
 
